@@ -23,7 +23,8 @@
         <jjwt.version>0.13.0</jjwt.version>
         <springdoc.version>3.1.1</springdoc.version>
         <spring-ai.version>2.0.1</spring-ai.version>
-        <tess4j.version>5.20.0</tess4j.version>
+        <!-- 5.8+ needs Leptonica 1.83, Debian 12 ships 1.82 -->
+        <tess4j.version>5.7.0</tess4j.version>
         <pdfbox.version>3.0.8</pdfbox.version>
         <jsoup.version>1.23.2</jsoup.version>
         <dnsjava.version>3.6.5</dnsjava.version>
@@ -237,6 +238,19 @@
                         </exclude>
                     </excludes>
                 </configuration>
+            </plugin>
+            <plugin>
+                <!-- Runs *IT classes (Testcontainers) during mvn verify -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>
