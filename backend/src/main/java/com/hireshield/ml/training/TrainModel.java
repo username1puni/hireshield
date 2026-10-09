@@ -19,6 +19,9 @@ import org.tribuo.MutableDataset;
 import org.tribuo.Trainer;
 import org.tribuo.classification.Label;
 import org.tribuo.classification.LabelFactory;
+import org.tribuo.classification.liblinear.LibLinearClassificationTrainer;
+import org.tribuo.classification.liblinear.LinearClassificationType;
+import org.tribuo.classification.liblinear.LinearClassificationType.LinearType;
 import org.tribuo.classification.mnb.MultinomialNaiveBayesTrainer;
 import org.tribuo.classification.sgd.linear.LinearSGDTrainer;
 import org.tribuo.classification.sgd.objectives.Hinge;
@@ -43,7 +46,8 @@ import tools.jackson.databind.json.JsonMapper;
  * </pre>
  *
  * Optional: {@code --extra a.csv,b.csv} adds more labelled data (columns text,label,source) to
- * training only, and {@code --tribuo-out dir} keeps the full Tribuo model file.
+ * training only, {@code --scam-test file.csv} scores a scam-only second test set (never trained on)
+ * and {@code --tribuo-out dir} keeps the full Tribuo model file.
  *
  * <p>Protocol: de-duplicate, stratified 80/20 split of EMSCAD, 5-fold cross validation on the
  * training part to pick the model and its threshold, then one evaluation on the untouched 20%.
@@ -66,7 +70,7 @@ public final class TrainModel {
         double score(Map<String, Double> vector);
     }
 
-    private record Candidate(String name, boolean linear, Supplier<List<Trainer<Label>>> trainers, boolean weighted) {
+    private record Candidate(String name, boolean servable, Supplier<List<Trainer<Label>>> trainers, boolean weighted) {
     }
 
     private record CvResult(Candidate candidate, double threshold, BinaryMetrics metrics) {
@@ -112,6 +116,9 @@ public final class TrainModel {
             Collections.shuffle(train, new Random(SEED));
         }
 
+        // The L2 (liblinear) models score a little higher on EMSCAD, but caught about half as
+        // many of the real SMS job scams in the second test set as the SGD model, so they are
+        // trained and reported for comparison but never served. See docs/model-experiments.md.
         List<Candidate> candidates = List.of(
                 new Candidate("Logistic Regression (lr 0.5, 10 epochs)", true,
                         () -> List.of(logistic(0.5, 10)), true),
@@ -119,6 +126,10 @@ public final class TrainModel {
                         () -> List.of(logistic(0.2, 20)), true),
                 new Candidate("Logistic Regression (lr 1.0, 5 epochs)", true,
                         () -> List.of(logistic(1.0, 5)), true),
+                new Candidate("Logistic Regression, L2 (liblinear, C=30)", false,
+                        () -> List.of(liblinear(LinearType.L2R_LR, 30)), true),
+                new Candidate("Logistic Regression, L2 (liblinear, C=100)", false,
+                        () -> List.of(liblinear(LinearType.L2R_LR, 100)), true),
                 new Candidate("Linear SVM (hinge loss)", false,
                         () -> List.of(new LinearSGDTrainer(new Hinge(), new AdaGrad(0.5, 0.1), 10, Integer.MAX_VALUE, 1, SEED)), true),
                 new Candidate("Multinomial Naive Bayes", false,
@@ -135,10 +146,10 @@ public final class TrainModel {
                     result.metrics().recall(), result.metrics().f1(), result.metrics().averagePrecision());
         }
 
-        // The served model has to be linear (see LinearScamModel), so pick the best linear one
+        // The served model has to be linear (see LinearScamModel), so pick the best servable one
         // by cross-validation F1. Every candidate is still evaluated on the test set for the report.
         CvResult best = cvResults.stream()
-                .filter(r -> r.candidate().linear())
+                .filter(r -> r.candidate().servable())
                 .max((a, b) -> Double.compare(a.metrics().f1(), b.metrics().f1()))
                 .orElseThrow();
         log("selected: %s", best.candidate().name());
@@ -147,6 +158,9 @@ public final class TrainModel {
         boolean[] actual = labels(test);
         Map<String, Object> testResults = new LinkedHashMap<>();
         Map<String, Object> extraResults = new LinkedHashMap<>();
+        List<Posting> scamTest = options.containsKey("scam-test")
+                ? ScamOnlyTestSet.load(Path.of(options.get("scam-test"))) : List.of();
+        Map<String, Object> scamTestResults = new LinkedHashMap<>();
         Model<Label> bestModel = null;
         for (CvResult result : cvResults) {
             List<Model<Label>> models = trainModels(result.candidate(), vectorizer, train);
@@ -157,6 +171,12 @@ public final class TrainModel {
                     result.candidate().name(), metrics.precision(), metrics.recall(), metrics.f1(), metrics.accuracy(),
                     metrics.averagePrecision(), metrics.truePositive(), metrics.falsePositive(),
                     metrics.trueNegative(), metrics.falseNegative());
+            if (!scamTest.isEmpty()) {
+                Map<String, Object> recall = scamTestRecall(score(scorer, vectorizer, scamTest), result.threshold());
+                scamTestResults.put(result.candidate().name(), recall);
+                log("SECOND TEST %-51s caught %s of %d (recall %s)", result.candidate().name(),
+                        recall.get("caught"), scamTest.size(), recall.get("recall"));
+            }
             if (result == best) {
                 bestModel = models.get(0);
             }
@@ -217,6 +237,7 @@ public final class TrainModel {
         report.put("extraDatasets", extraInfo);
         report.put("features", Map.of(
                 "type", "TF-IDF unigrams + bigrams, sublinear tf, L2 normalised",
+                "maxDocRatio", MAX_DOC_RATIO,
                 "vocabularySize", vectorizer.vocabularySize(),
                 "minDocFrequency", MIN_DOC_FREQUENCY,
                 "maxFeatures", MAX_FEATURES));
@@ -230,6 +251,15 @@ public final class TrainModel {
         report.put("baselineAlwaysReal", Map.of(
                 "accuracy", Math.round(10000.0 * realInTest / test.size()) / 10000.0,
                 "recall", 0.0));
+        if (!scamTest.isEmpty()) {
+            Map<String, Object> second = new LinkedHashMap<>();
+            second.put("name", "IMC'25 smishing dataset, job-scam messages (CC BY 4.0)");
+            second.put("rows", scamTest.size());
+            second.put("note", "Scam rows only, so only recall can be measured. Never used for training.");
+            second.put("selectedModel", scamTestResults.get(best.candidate().name()));
+            second.put("allModels", scamTestResults);
+            report.put("secondTest", second);
+        }
         report.put("exportMaxDifference", maxDiff);
         mapper.writeValue(outDir.resolve("metrics.json").toFile(), report);
         log("wrote model, vectorizer and metrics to %s", outDir.toAbsolutePath());
@@ -237,6 +267,18 @@ public final class TrainModel {
 
     private static LinearSGDTrainer logistic(double learningRate, int epochs) {
         return new LinearSGDTrainer(new LogMulticlass(), new AdaGrad(learningRate, 0.1), epochs, Integer.MAX_VALUE, 1, SEED);
+    }
+
+    /** The untouched 20% test split, rebuilt exactly the way main() builds it. */
+    static List<Posting> heldOutTest(Path csv) throws IOException {
+        List<Posting> train = new ArrayList<>();
+        List<Posting> test = new ArrayList<>();
+        stratifiedSplit(EmscadLoader.load(csv).postings(), 0.2, train, test, SEED);
+        return test;
+    }
+
+    private static LibLinearClassificationTrainer liblinear(LinearType type, double cost) {
+        return new LibLinearClassificationTrainer(new LinearClassificationType(type), cost, 1000, 0.001);
     }
 
     private static CvResult crossValidate(Candidate candidate, List<Posting> train) {
@@ -278,6 +320,13 @@ public final class TrainModel {
         List<Model<Label>> models = new ArrayList<>();
         for (Trainer<Label> trainer : candidate.trainers().get()) {
             boolean weighted = candidate.weighted() && trainer instanceof LinearSGDTrainer;
+            if (candidate.weighted() && trainer instanceof LibLinearClassificationTrainer liblinear) {
+                // Same as class_weight="balanced": each class counts as half of the data.
+                long fraud = countFraud(postings);
+                liblinear.setLabelWeights(Map.of(
+                        FRAUD, (float) (postings.size() / (2.0 * fraud)),
+                        REAL, (float) (postings.size() / (2.0 * (postings.size() - fraud)))));
+            }
             models.add(trainer.train(dataset(postings, vectors, weighted)));
         }
         return models;
@@ -336,6 +385,21 @@ public final class TrainModel {
             }
         }
         return folds;
+    }
+
+    private static Map<String, Object> scamTestRecall(double[] scores, double threshold) {
+        int caught = 0;
+        for (double s : scores) {
+            if (s >= threshold) {
+                caught++;
+            }
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("threshold", threshold);
+        result.put("caught", caught);
+        result.put("missed", scores.length - caught);
+        result.put("recall", Math.round(10000.0 * caught / scores.length) / 10000.0);
+        return result;
     }
 
     private static List<Map<String, Object>> cvTable(List<CvResult> results) {

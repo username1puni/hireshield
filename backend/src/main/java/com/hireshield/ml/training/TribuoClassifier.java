@@ -7,6 +7,7 @@ import org.tribuo.Example;
 import org.tribuo.Model;
 import org.tribuo.Prediction;
 import org.tribuo.classification.Label;
+import org.tribuo.classification.liblinear.LibLinearClassificationModel;
 import org.tribuo.classification.sgd.linear.LinearSGDModel;
 import org.tribuo.impl.ArrayExample;
 import org.tribuo.math.la.DenseMatrix;
@@ -53,13 +54,21 @@ final class TribuoClassifier {
     }
 
     /**
-     * Two-class softmax equals a sigmoid over the difference of the two weight rows,
-     * so a linear model can be served as one weight per term plus a bias.
+     * Exports a two-class linear model as one weight per term plus a bias, so that
+     * P(fraud) = sigmoid(w . x + b). TrainModel checks the export against Tribuo's own output.
      */
     LinearExport exportLinear() {
-        if (!(model instanceof LinearSGDModel linear)) {
-            throw new IllegalStateException("Only linear models can be exported, got " + model.getClass().getSimpleName());
+        if (model instanceof LinearSGDModel linear) {
+            return exportSgd(linear);
         }
+        if (model instanceof LibLinearClassificationModel liblinear) {
+            return exportLibLinear(liblinear);
+        }
+        throw new IllegalStateException("Only linear models can be exported, got " + model.getClass().getSimpleName());
+    }
+
+    /** Two-class softmax equals a sigmoid over the difference of the two weight rows. */
+    private LinearExport exportSgd(LinearSGDModel linear) {
         DenseMatrix w = linear.getWeightsCopy();
         int fraudRow = model.getOutputIDInfo().getID(new Label(FRAUD));
         int realRow = model.getOutputIDInfo().getID(new Label(REAL));
@@ -72,6 +81,24 @@ final class TribuoClassifier {
         // The bias is stored in the last column.
         int biasColumn = w.getDimension2Size() - 1;
         double bias = w.get(fraudRow, biasColumn) - w.get(realRow, biasColumn);
+        return new LinearExport(weights, bias);
+    }
+
+    /**
+     * LIBLINEAR keeps a single weight vector for the first label it saw. Tribuo adds the bias
+     * as one extra feature after the real ones, so its weight is the last entry.
+     */
+    private LinearExport exportLibLinear(LibLinearClassificationModel liblinear) {
+        de.bwaldvogel.liblinear.Model inner = liblinear.getInnerModels().get(0);
+        double[] w = inner.getFeatureWeights();
+        int fraudId = model.getOutputIDInfo().getID(new Label(FRAUD));
+        double sign = inner.getLabels()[0] == fraudId ? 1.0 : -1.0;
+        var featureMap = model.getFeatureIDMap();
+        Map<String, Double> weights = new HashMap<>();
+        for (var info : featureMap) {
+            weights.put(info.getName(), sign * w[featureMap.getID(info.getName())]);
+        }
+        double bias = w.length > featureMap.size() ? sign * w[featureMap.size()] : 0.0;
         return new LinearExport(weights, bias);
     }
 }

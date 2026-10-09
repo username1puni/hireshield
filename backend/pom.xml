@@ -118,6 +118,11 @@
         </dependency>
         <dependency>
             <groupId>org.tribuo</groupId>
+            <artifactId>tribuo-classification-liblinear</artifactId>
+            <version>${tribuo.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.tribuo</groupId>
             <artifactId>tribuo-data</artifactId>
             <version>${tribuo.version}</version>
         </dependency>
