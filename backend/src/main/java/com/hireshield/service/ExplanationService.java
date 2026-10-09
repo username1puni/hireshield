@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.hireshield.entity.RiskLevel;
-import com.hireshield.ml.ScamClassifier.TermContribution;
+import com.hireshield.ml.MlResult.TermContribution;
 import com.hireshield.rules.RuleHit;
 
 import lombok.extern.slf4j.Slf4j;

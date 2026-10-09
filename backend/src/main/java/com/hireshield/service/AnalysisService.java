@@ -31,7 +31,7 @@ import com.hireshield.entity.InputType;
 import com.hireshield.entity.RiskLevel;
 import com.hireshield.entity.UploadedFile;
 import com.hireshield.exception.NotFoundException;
-import com.hireshield.ml.ScamClassifier;
+import com.hireshield.ml.MlResult;
 import com.hireshield.repository.AnalysisRepository;
 import com.hireshield.repository.FeedbackRepository;
 import com.hireshield.repository.ModelVersionRepository;
@@ -156,7 +156,7 @@ public class AnalysisService {
                 .orElseThrow(() -> new NotFoundException("Check " + id + " not found"));
     }
 
-    private record Result(AnalysisContext context, List<RuleHit> hits, ScamClassifier.MlResult ml,
+    private record Result(AnalysisContext context, List<RuleHit> hits, MlResult ml,
                           List<DomainReport> domains, List<LinkReport> links, List<String> reported,
                           ScoringService.Score score, ExplanationService.Explanation explanation) {
     }
@@ -224,7 +224,7 @@ public class AnalysisService {
         List<FlagResponse> flags = r.hits().stream()
                 .map(h -> new FlagResponse(h.code(), h.title(), h.points(), h.evidence()))
                 .toList();
-        List<String> terms = r.ml().topTerms().stream().map(ScamClassifier.TermContribution::term).toList();
+        List<String> terms = r.ml().topTerms().stream().map(MlResult.TermContribution::term).toList();
         String version = a.getModelVersion() == null ? null : a.getModelVersion().getVersion();
         return new AnalysisResponse(a.getId(), a.getFinalScore(), a.getRiskLevel(), a.getRuleScore(),
                 a.getMlProbability().doubleValue(), a.getTrustScore(), flags, terms, r.domains(), r.links(),

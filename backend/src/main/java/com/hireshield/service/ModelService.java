@@ -3,8 +3,6 @@ package com.hireshield.service;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Map;
 
@@ -12,12 +10,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
-import org.tribuo.Model;
-import org.tribuo.classification.Label;
 
 import com.hireshield.entity.ModelVersion;
-import com.hireshield.ml.ScamClassifier;
-import com.hireshield.ml.TfidfVectorizer;
+import com.hireshield.ml.LinearScamModel;
+import com.hireshield.ml.MlResult;
 import com.hireshield.repository.ModelVersionRepository;
 
 import jakarta.annotation.PostConstruct;
@@ -37,7 +33,7 @@ public class ModelService {
     private final ModelVersionRepository modelVersionRepository;
     private final String location;
 
-    private volatile ScamClassifier classifier;
+    private volatile LinearScamModel model;
     private volatile JsonNode metrics;
     private volatile Long activeVersionId;
 
@@ -56,21 +52,18 @@ public class ModelService {
         try (InputStream in = resource("metrics.json").getInputStream()) {
             metricsJson = objectMapper.readTree(in);
         }
-        TfidfVectorizer vectorizer;
-        try (InputStream in = resource("vectorizer.json").getInputStream()) {
-            vectorizer = TfidfVectorizer.load(in, objectMapper);
+        try (InputStream weights = resource("scam-model.json").getInputStream();
+             InputStream vectorizer = resource("vectorizer.json").getInputStream()) {
+            this.model = LinearScamModel.load(weights, vectorizer, objectMapper);
         }
-        Model<Label> model = readModel(resource("scam-model.tribuo"));
-        double threshold = metricsJson.path("threshold").asDouble(0.5);
-        this.classifier = new ScamClassifier(model, vectorizer, threshold);
         this.metrics = metricsJson;
         this.activeVersionId = registerVersion(metricsJson);
         log.info("Loaded model {} ({} terms, threshold {})",
-                metricsJson.path("version").asString(), vectorizer.vocabularySize(), threshold);
+                metricsJson.path("version").asString(), model.vocabularySize(), model.threshold());
     }
 
-    public ScamClassifier.MlResult predict(String text) {
-        return classifier.predict(text, 8);
+    public MlResult predict(String text) {
+        return model.predict(text, 8);
     }
 
     public JsonNode metrics() {
@@ -94,7 +87,7 @@ public class ModelService {
             row.setF1(decimal(test, "f1"));
             row.setPrAuc(decimal(test, "prAuc"));
             row.setThreshold(decimal(m, "threshold"));
-            row.setFilePath(location + "scam-model.tribuo");
+            row.setFilePath(location + "scam-model.json");
         }
         modelVersionRepository.deactivateAll();
         row.setActive(true);
@@ -103,18 +96,6 @@ public class ModelService {
 
     private Resource resource(String name) {
         return resourceLoader.getResource(location + name);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Model<Label> readModel(Resource resource) throws IOException {
-        // Tribuo reads protobuf models from a path, so copy out of the jar first.
-        Path temp = Files.createTempFile("scam-model", ".tribuo");
-        try (InputStream in = resource.getInputStream()) {
-            Files.copy(in, temp, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            return (Model<Label>) Model.deserializeFromFile(temp);
-        } finally {
-            Files.deleteIfExists(temp);
-        }
     }
 
     private static BigDecimal decimal(JsonNode node, String field) {

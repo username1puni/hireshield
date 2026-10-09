@@ -10,7 +10,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.ObjectProvider;
 
 import com.hireshield.entity.RiskLevel;
-import com.hireshield.ml.ScamClassifier.TermContribution;
+import com.hireshield.ml.MlResult.TermContribution;
 import com.hireshield.rules.RuleHit;
 
 class ExplanationServiceTest {
