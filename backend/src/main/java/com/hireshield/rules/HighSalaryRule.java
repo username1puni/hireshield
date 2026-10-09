@@ -20,7 +20,13 @@ public class HighSalaryRule implements RedFlagRule {
             "(₹|rs\\.?|inr)\\s?(\\d[\\d,]*(\\.\\d+)?)\\s?(k)?\\s*(/|per|a|every|in\\s+a|daily)?\\s*(-|/)?\\s*(hour|hr|day|daily|week|weekly|month|monthly)?",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern EASY_WORK = Pattern.compile(
-            "\\b(data\\s+entry|typing|copy\\s+paste|part[\\s-]?time|work\\s+from\\s+home|ghar\\s+baithe|no\\s+experience|freshers?|students?|housewives|simple\\s+work|easy\\s+work|mobile\\s+work|form\\s+filling)\\b",
+            "\\b(data\\s+entry|typing|copy\\s+paste|part[\\s-]?time|work\\s+from\\s+home|ghar\\s+baithe|no\\s+experience|freshers?|students?|housewives|simple\\s+work|easy\\s+work|mobile\\s+work|form\\s+filling"
+                    + "|home\\s+based|homeworkers?|spare\\s+time|(with|using|use)\\s+(your|a)\\s+(mobile\\s+)?phone|easy\\s+job|simple\\s+job)\\b",
+            Pattern.CASE_INSENSITIVE);
+    // Scam texts reach people in many countries, so daily pay is matched in any currency:
+    // "earn 200-3000 rupees a day", "$100 and $300 a day", "5000BRL per day", "daily salary: 4600+".
+    private static final Pattern DAILY_PAY = Pattern.compile(
+            "\\b(daily\\s+(salary|income|wage|pay|earnings?)|\\d[\\d,.]*\\+?(?!\\s*(hours?|hrs?|days?|times?|shifts?)\\b)\\s*[a-z$\u20ac\u00a3\u20b9]{0,8}\\s*(/|per|a|every)\\s*day)\\b",
             Pattern.CASE_INSENSITIVE);
 
     @Override
@@ -32,6 +38,13 @@ public class HighSalaryRule implements RedFlagRule {
     public Optional<String> findEvidence(AnalysisContext context) {
         String text = context.text();
         boolean easyWork = EASY_WORK.matcher(text).find();
+        if (easyWork) {
+            // Real jobs rarely quote pay per day next to "part-time" or "work from home".
+            Matcher daily = DAILY_PAY.matcher(text);
+            if (daily.find()) {
+                return Optional.of(TextPatterns.snippet(text, daily.start(), daily.end()));
+            }
+        }
         Matcher matcher = RATE.matcher(text);
         while (matcher.find()) {
             long amount = TextPatterns.parseAmount(matcher.group(2), matcher.group(4));

@@ -12,7 +12,9 @@ public class NoInterviewRule extends PatternRule {
                 "\\b(100\\s?%|guaranteed?)\\s+(job|placement|selection|income)\\b",
                 "\\bjob\\s+guarantee\\b",
                 "\\bselected\\s+without\\b",
-                "\\bon\\s+the\\s+spot\\s+(offer|selection)\\b");
+                "\\bon\\s+the\\s+spot\\s+(offer|selection)\\b",
+                "\\byou\\s+have\\s+passed\\s+(our|the)\\s+(interview|review)\\b",
+                "\\bcongratulations\\b[^.\\n]{0,40}\\bselected\\b");
     }
 
     @Override

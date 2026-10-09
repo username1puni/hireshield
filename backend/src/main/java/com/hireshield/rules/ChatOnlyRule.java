@@ -7,8 +7,10 @@ public class ChatOnlyRule extends PatternRule {
 
     public ChatOnlyRule() {
         super(
-                "\\b(contact|message|msg|ping|dm|text|join|reach|chat|apply)\\b[^.\\n]{0,30}\\b(on|via|through|in)\\s+(whats\\s?app|telegram|wa)\\b",
-                "\\b(whats\\s?app|telegram)\\s+(only|no\\.?|number|group|channel|id)\\b",
+                "\\b(contact|message|msg|ping|dm|text|join|reach|chat|apply)\\b[^.\\n]{0,30}\\b(on|via|through|in)\\s+(whats[\\s-]?app|telegram|wa)\\b",
+                "\\b(whats[\\s-]?app|telegram)\\s+(only|no\\.?|number|group|channel|id)\\b",
+                "\\b(add|contact)\\s+(me\\s+)?(on\\s+)?(my\\s+)?(whats[\\s-]?app|telegram)\\b",
+                "\\b(whats[\\s-]?app|telegram|ws)\\s*:",
                 "\\b(t\\.me|wa\\.me|chat\\.whatsapp\\.com)/\\S+");
     }
 

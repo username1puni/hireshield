@@ -32,7 +32,13 @@ class RedFlagRulesTest {
                 Arguments.of(new HighSalaryRule(), "Data entry work, earn Rs 4000 per day"),
                 Arguments.of(new HighSalaryRule(), "Part time job. Salary ₹25,000 per week"),
                 Arguments.of(new PoorWritingRule(), "URGENT HIRING!!! WORK FROM HOME AND EARN BIG MONEY NOW APPLY"),
-                Arguments.of(new FakeGovtRule(), "Railway recruitment 2026, apply at rrb-jobs.com or mail rrb.help@gmail.com"));
+                Arguments.of(new FakeGovtRule(), "Railway recruitment 2026, apply at rrb-jobs.com or mail rrb.help@gmail.com"),
+                Arguments.of(new TaskScamRule(), "Click like on the videos and get paid for each one"),
+                Arguments.of(new ChatOnlyRule(), "Interested? Add me on WhatsApp for details"),
+                Arguments.of(new ChatOnlyRule(), "For the offer letter, Telegram: @hr_desk_jobs"),
+                Arguments.of(new NoInterviewRule(), "Congratulations, you have been selected for the online job"),
+                Arguments.of(new HighSalaryRule(), "Part-time online work from your phone, earn $150 a day"),
+                Arguments.of(new HighSalaryRule(), "Work from home, daily salary sent to your account"));
     }
 
     static Stream<Arguments> safeSamples() {
@@ -45,7 +51,9 @@ class RedFlagRulesTest {
                 Arguments.of(new NoInterviewRule(), "Selection: online test, technical interview and HR interview"),
                 Arguments.of(new HighSalaryRule(), "CTC Rs 12 LPA for software engineers with 3 years experience"),
                 Arguments.of(new PoorWritingRule(), "We are hiring Java developers. Apply on our careers page."),
-                Arguments.of(new FakeGovtRule(), "Railway recruitment notice published on indianrailways.gov.in"));
+                Arguments.of(new FakeGovtRule(), "Railway recruitment notice published on indianrailways.gov.in",
+                Arguments.of(new HighSalaryRule(), "Part-time role, 4 hours a day, stipend Rs 15,000 per month"),
+                Arguments.of(new ChatOnlyRule(), "Questions about the role? Write to careers@infosys.com")));
     }
 
     @ParameterizedTest

@@ -14,7 +14,9 @@ public class TaskScamRule extends PatternRule {
                 "\\b(prepaid|merchant|paid|vip)\\s+tasks?\\b",
                 "\\b(daily|per\\s+task)\\s+commission\\b",
                 "\\bearn\\b[^.\\n]{0,30}\\bper\\s+(task|like|review|video)\\b",
-                "\\btelegram\\s+task\\b");
+                "\\btelegram\\s+task\\b",
+                "\\bclick\\s+['\"]?like\\b",
+                "\\b(boost|increase)\\s+(their\\s+|the\\s+)?(popularity|views|ratings|video\\s+hits)\\b");
     }
 
     @Override
