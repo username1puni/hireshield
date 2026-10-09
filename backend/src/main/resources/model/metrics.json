@@ -1,6 +1,6 @@
 {
   "version" : "emscad-2026-10-09",
-  "trainedAt" : "2026-10-09T08:26:44.109890199Z",
+  "trainedAt" : "2026-10-09T10:35:22.328462984Z",
   "dataset" : {
     "duplicatesRemoved" : 2163,
     "rows" : 17880,
@@ -14,9 +14,10 @@
   "extraDatasets" : [ ],
   "features" : {
     "minDocFrequency" : 3,
+    "maxDocRatio" : 0.6,
+    "type" : "TF-IDF unigrams + bigrams, sublinear tf, L2 normalised",
     "vocabularySize" : 75000,
-    "maxFeatures" : 75000,
-    "type" : "TF-IDF unigrams + bigrams, sublinear tf, L2 normalised"
+    "maxFeatures" : 75000
   },
   "algorithm" : "Logistic Regression (lr 0.2, 20 epochs)",
   "threshold" : 0.63,
@@ -64,6 +65,36 @@
       "truePositive" : 422,
       "falseNegative" : 144,
       "trueNegative" : 11897
+    }
+  }, {
+    "model" : "Logistic Regression, L2 (liblinear, C=30)",
+    "threshold" : 0.49,
+    "precision" : 0.9064,
+    "recall" : 0.8039,
+    "f1" : 0.8521,
+    "accuracy" : 0.9874,
+    "rocAuc" : 0.9849,
+    "prAuc" : 0.895,
+    "confusionMatrix" : {
+      "falsePositive" : 47,
+      "truePositive" : 455,
+      "falseNegative" : 111,
+      "trueNegative" : 11960
+    }
+  }, {
+    "model" : "Logistic Regression, L2 (liblinear, C=100)",
+    "threshold" : 0.33,
+    "precision" : 0.883,
+    "recall" : 0.8269,
+    "f1" : 0.854,
+    "accuracy" : 0.9873,
+    "rocAuc" : 0.9849,
+    "prAuc" : 0.8966,
+    "confusionMatrix" : {
+      "falsePositive" : 62,
+      "truePositive" : 468,
+      "falseNegative" : 98,
+      "trueNegative" : 11945
     }
   }, {
     "model" : "Linear SVM (hinge loss)",
@@ -187,6 +218,36 @@
         "trueNegative" : 2981
       }
     },
+    "Logistic Regression, L2 (liblinear, C=30)" : {
+      "threshold" : 0.49,
+      "precision" : 0.918,
+      "recall" : 0.7887,
+      "f1" : 0.8485,
+      "accuracy" : 0.9873,
+      "rocAuc" : 0.9775,
+      "prAuc" : 0.8767,
+      "confusionMatrix" : {
+        "falsePositive" : 10,
+        "truePositive" : 112,
+        "falseNegative" : 30,
+        "trueNegative" : 2992
+      }
+    },
+    "Logistic Regression, L2 (liblinear, C=100)" : {
+      "threshold" : 0.33,
+      "precision" : 0.8968,
+      "recall" : 0.7958,
+      "f1" : 0.8433,
+      "accuracy" : 0.9866,
+      "rocAuc" : 0.9772,
+      "prAuc" : 0.876,
+      "confusionMatrix" : {
+        "falsePositive" : 13,
+        "truePositive" : 113,
+        "falseNegative" : 29,
+        "trueNegative" : 2989
+      }
+    },
     "Linear SVM (hinge loss)" : {
       "threshold" : 0.97,
       "precision" : 0.777,
@@ -237,6 +298,67 @@
   "baselineAlwaysReal" : {
     "recall" : 0.0,
     "accuracy" : 0.9548
+  },
+  "secondTest" : {
+    "name" : "IMC'25 smishing dataset, job-scam messages (CC BY 4.0)",
+    "rows" : 430,
+    "note" : "Scam rows only, so only recall can be measured. Never used for training.",
+    "selectedModel" : {
+      "threshold" : 0.63,
+      "caught" : 267,
+      "missed" : 163,
+      "recall" : 0.6209
+    },
+    "allModels" : {
+      "Logistic Regression (lr 0.5, 10 epochs)" : {
+        "threshold" : 0.66,
+        "caught" : 299,
+        "missed" : 131,
+        "recall" : 0.6953
+      },
+      "Logistic Regression (lr 0.2, 20 epochs)" : {
+        "threshold" : 0.63,
+        "caught" : 267,
+        "missed" : 163,
+        "recall" : 0.6209
+      },
+      "Logistic Regression (lr 1.0, 5 epochs)" : {
+        "threshold" : 0.87,
+        "caught" : 321,
+        "missed" : 109,
+        "recall" : 0.7465
+      },
+      "Logistic Regression, L2 (liblinear, C=30)" : {
+        "threshold" : 0.49,
+        "caught" : 122,
+        "missed" : 308,
+        "recall" : 0.2837
+      },
+      "Logistic Regression, L2 (liblinear, C=100)" : {
+        "threshold" : 0.33,
+        "caught" : 143,
+        "missed" : 287,
+        "recall" : 0.3326
+      },
+      "Linear SVM (hinge loss)" : {
+        "threshold" : 0.97,
+        "caught" : 325,
+        "missed" : 105,
+        "recall" : 0.7558
+      },
+      "Multinomial Naive Bayes" : {
+        "threshold" : 0.09,
+        "caught" : 247,
+        "missed" : 183,
+        "recall" : 0.5744
+      },
+      "Ensemble: average of Logistic Regression and Naive Bayes" : {
+        "threshold" : 0.44,
+        "caught" : 267,
+        "missed" : 163,
+        "recall" : 0.6209
+      }
+    }
   },
   "exportMaxDifference" : 4.996003610813204E-16
 }
