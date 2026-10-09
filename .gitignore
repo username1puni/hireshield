@@ -1,0 +1,17 @@
+# Build output
+target/
+backend/target/
+frontend/node_modules/
+frontend/dist/
+backend/src/main/resources/static/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Local config and data
+.env
+data/*.csv
+*.log

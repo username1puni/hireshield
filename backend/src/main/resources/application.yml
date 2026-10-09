@@ -1,0 +1,75 @@
+spring:
+  application:
+    name: hireshield
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/hireshield}
+    username: ${DB_USERNAME:hireshield}
+    password: ${DB_PASSWORD:hireshield}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+  ai:
+    openai:
+      api-key: ${LLM_API_KEY:not-set}
+      base-url: ${LLM_BASE_URL:https://api.groq.com/openai}
+      chat:
+        options:
+          model: ${LLM_MODEL:llama-3.3-70b-versatile}
+          temperature: 0.2
+
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+  error:
+    include-message: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+  api-docs:
+    path: /v3/api-docs
+
+app:
+  jwt:
+    # Must be at least 32 characters. Always override in production.
+    secret: ${JWT_SECRET:change-me-local-dev-secret-key-0123456789}
+    expiry-minutes: ${JWT_EXPIRY_MINUTES:1440}
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
+  admin:
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
+  llm:
+    enabled: ${LLM_ENABLED:false}
+  ocr:
+    tessdata-path: ${TESSDATA_PREFIX:/usr/share/tesseract-ocr/5/tessdata}
+    language: ${OCR_LANGUAGE:eng}
+  safe-browsing:
+    api-key: ${SAFE_BROWSING_API_KEY:}
+  rate-limit:
+    guest-checks-per-minute: ${GUEST_RATE_LIMIT:10}
+  model:
+    location: ${MODEL_LOCATION:classpath:model/}
