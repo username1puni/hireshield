@@ -930,3 +930,8 @@ textarea {
   gap: 1rem;
   flex-wrap: wrap;
 }
+
+.selected-row td {
+  font-weight: 600;
+  background: #f1f5f9;
+}

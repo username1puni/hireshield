@@ -141,6 +141,12 @@ export interface Metrics {
   }
   crossValidation: Array<{ model: string; precision: number; recall: number; f1: number; prAuc: number }>
   baselineAlwaysReal: { accuracy: number; recall: number }
+  secondTest?: {
+    name: string
+    rows: number
+    selectedModel: { caught: number; missed: number; recall: number }
+    allModels?: Record<string, { caught: number; recall: number }>
+  }
 }
 
 export interface ApiErrorBody {

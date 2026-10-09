@@ -54,17 +54,40 @@ export default function ModelPage() {
             </p>
           </div>
 
+          {metrics.secondTest && (
+            <div className="card prose">
+              <h3>Second test: real SMS and WhatsApp job scams</h3>
+              <p>
+                Job ads are not the only way scams arrive, so the model was also tested on {metrics.secondTest.rows} real
+                job-scam messages reported by users (IMC 2025 smishing dataset, CC BY 4.0). None of them were used for
+                training. The model alone flagged <strong>{metrics.secondTest.selectedModel.caught}</strong> of them
+                ({percent(metrics.secondTest.selectedModel.recall)}). The red-flag rules and trust checks catch many of the rest.
+              </p>
+            </div>
+          )}
+
           {metrics.crossValidation && (
             <div className="card table-wrap">
               <h3>Models compared (5-fold cross validation)</h3>
               <table className="checks">
-                <thead><tr><th>Model</th><th>Precision</th><th>Recall</th><th>F1</th></tr></thead>
+                <thead><tr><th>Model</th><th>Precision</th><th>Recall</th><th>F1</th><th>SMS scams caught</th></tr></thead>
                 <tbody>
-                  {metrics.crossValidation.map((row) => (
-                    <tr key={row.model}><td>{row.model}</td><td>{percent(row.precision)}</td><td>{percent(row.recall)}</td><td>{row.f1.toFixed(3)}</td></tr>
-                  ))}
+                  {metrics.crossValidation.map((row) => {
+                    const sms = metrics.secondTest?.allModels?.[row.model]
+                    return (
+                      <tr key={row.model} className={row.model === metrics.algorithm ? 'selected-row' : undefined}>
+                        <td>{row.model}{row.model === metrics.algorithm ? ' (used)' : ''}</td>
+                        <td>{percent(row.precision)}</td><td>{percent(row.recall)}</td><td>{row.f1.toFixed(3)}</td>
+                        <td>{sms ? percent(sms.recall) : '-'}</td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
+              <p className="tiny muted">
+                The L2 (liblinear) models score a bit higher on job ads, but they caught less than half as many of the real SMS
+                scams as the model in use, so the app keeps the model that holds up better on both.
+              </p>
               <p className="tiny muted">Model version {metrics.version}, decision threshold {metrics.threshold}.</p>
             </div>
           )}
