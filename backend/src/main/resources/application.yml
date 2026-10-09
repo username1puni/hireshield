@@ -22,6 +22,16 @@ spring:
       max-file-size: 5MB
       max-request-size: 6MB
   ai:
+    # The LLM explanation is optional. "none" skips the OpenAI client entirely (saves memory);
+    # set LLM_PROVIDER=openai together with LLM_ENABLED=true and LLM_API_KEY to turn it on.
+    model:
+      chat: ${LLM_PROVIDER:none}
+      embedding: none
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
     openai:
       api-key: ${LLM_API_KEY:not-set}
       base-url: ${LLM_BASE_URL:https://api.groq.com/openai}
