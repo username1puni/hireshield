@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:hireshield;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: none
+
+app:
+  jwt:
+    secret: test-secret-key-that-is-long-enough-1234567890
+  admin:
+    email: admin@test.com
+    password: admin-password
+  rate-limit:
+    guest-checks-per-minute: 1000
